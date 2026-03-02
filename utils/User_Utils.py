@@ -36,6 +36,19 @@ def binary_question(question:str, answers:str="s/n"):
         else:
             print("Respuesta invalida. Por favor ingrese una opcion valida.")
 
+def get_positive_integer(prompt:str):
+    """Solicita al usuario que ingrese un numero entero positivo y lo devuelve.
+    Si el usuario ingresa un valor no valido, se le vuelve a solicitar hasta que ingrese un valor correcto."""
+    while True:
+        try:
+            value = int(input(prompt))
+            if value > 0:
+                return value
+            else:
+                print("Error. Por favor ingrese un numero entero positivo.")
+        except ValueError:
+            print("Error. Por favor ingrese un numero entero positivo.")
+
 def get_table(path_tablas, header=None):
     """Solicita al usuario el nombre de una tabla y 
     devuelve un DataFrame con los datos de esa tabla.
