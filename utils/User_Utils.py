@@ -49,11 +49,10 @@ def get_positive_integer(prompt:str):
         except ValueError:
             print("Error. Por favor ingrese un numero entero positivo.")
 
-def get_table(path_tablas, header=None):
+def get_table(path_tablas):
     """Solicita al usuario el nombre de una tabla y 
     devuelve un DataFrame con los datos de esa tabla.
     :param path_tablas: Ruta de la carpeta donde se encuentran las tablas
-    :param header: Indica si la tabla tiene encabezado o no. Por defecto es None (sin encabezado). Si se establece en 0, la primera fila se considerará como encabezado.
     :return: DataFrame con los datos de la tabla seleccionada por el usuario"""
     while True:
         nombre_tabla = input("Ingrese el nombre de la tabla (sin extension): ")
@@ -61,4 +60,19 @@ def get_table(path_tablas, header=None):
         if not os.path.exists(path_tabla):
             print("Error. La tabla no existe.")
         else:
-            return pd.read_csv(path_tabla, header=header)
+            header = 0 if binary_question("La tabla tiene encabezados?") else None
+            df = pd.read_csv(path_tabla, header=header)
+            if header is not None:
+                headers = df.columns.tolist()
+                option = select_option(headers, "Seleccione la columna que desea usar como muestra:")
+                df = df[option]
+                print(df)
+                exit()
+                return df
+            else:
+                return df
+
+if __name__ == "__main__":
+    root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path_tablas = os.path.join(root_path, "tablas")
+    get_table(path_tablas)
