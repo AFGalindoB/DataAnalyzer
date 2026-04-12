@@ -19,11 +19,13 @@ class Tabla:
 
         opciones = {
             "Crear tabla":self.crear_tabla, 
+            "Agregar tabla desde archivo":self.agregar_tabla,
             "Realizar tabla de frecuencias":self.realizar_tabla_de_frecuencias,
             "Realizar grafica de tallos y hojas":self.realizar_grafica_tallos_hojas,
             "Realizar grafica de cajas y bigotes":self.realizar_grafica_cajas_bigotes,
             "Realizar histograma":self.realizar_histograma,
             "Calcular muestra":self.calcular_muestra,
+            "Realizar regresion lineal": self.realizar_regresion_lineal,
             "Salir":self.salir
         }
         lista_opciones = list(opciones.keys())
@@ -73,6 +75,43 @@ class Tabla:
         tabla = pd.DataFrame(datos); print(tabla)
         tabla.to_csv(path_tabla, index=False, header=False)
         print("Archivo CSV guardado correctamente ✔")
+
+    def agregar_tabla(self):
+        print("\nAbriendo explorador de archivos...")
+        ruta_origen = user_f.open_file_dialog()
+ 
+        if not ruta_origen:
+            print("No se seleccionó ningún archivo.")
+            return
+ 
+        if not ruta_origen.lower().endswith(".csv"):
+            print("Error: solo se admiten archivos .csv")
+            return
+ 
+        nombre_sugerido = os.path.splitext(os.path.basename(ruta_origen))[0]
+        nombre = input(f"Nombre para guardar la tabla (Enter para usar '{nombre_sugerido}'): ").strip()
+        if not nombre:
+            nombre = nombre_sugerido
+ 
+        destino = os.path.join(self.path_tablas, f"{nombre}.csv")
+ 
+        if os.path.exists(destino):
+            sobrescribir = user_f.binary_question(
+                f"Ya existe '{nombre}.csv'. ¿Desea sobreescribirlo?", "s/n"
+            )
+            if not sobrescribir:
+                print("Operación cancelada.")
+                return
+ 
+        import shutil
+        shutil.copy2(ruta_origen, destino)
+        print(f"Tabla guardada como '{nombre}.csv' ✔")
+ 
+        vista_previa = user_f.binary_question("¿Desea ver una vista previa de los datos?", "s/n")
+        if vista_previa:
+            df = pd.read_csv(destino, header=None)
+            print(f"\nDimensiones: {df.shape[0]} filas x {df.shape[1]} columnas")
+            print(df.head(10).to_string(index=False, header=False))
 
     def calcular_muestra(self):
         tabla = user_f.get_table(self.path_tablas)
@@ -229,6 +268,72 @@ class Tabla:
         plt.ylabel("Frecuencia")
 
         plt.show()
+
+    def realizar_regresion_lineal(self):
+        print("\n--- Regresión Lineal Simple ---")
+        print("Seleccione la tabla con la variable X (independiente):")
+        tabla_x = user_f.get_table(self.path_tablas)
+        x = tabla_x.values.flatten().astype(float)
+
+        print("\nSeleccione la tabla con la variable Y (dependiente):")
+        tabla_y = user_f.get_table(self.path_tablas)
+        y = tabla_y.values.flatten().astype(float)
+
+        if len(x) != len(y):
+            print(f"Error: X tiene {len(x)} datos e Y tiene {len(y)}. Deben ser iguales.")
+            return
+
+        # -- NUEVO: filtrado opcional de atípicos --
+        filtrar = user_f.binary_question("\n¿Desea filtrar datos atípicos antes de la regresión?", "s/n")
+        if filtrar:
+            metodos = ["IQR (bigotes)", "Recorte por porcentaje", "Z-score (|z| > 3)"]
+            keys    = ["iqr", "recorte", "zscore"]
+            eleccion = user_f.select_option(metodos, "Seleccione el método de filtrado:")
+            metodo = keys[metodos.index(eleccion)]
+
+            porcentaje = 0.05
+            if metodo == "recorte":
+                while True:
+                    try:
+                        porcentaje = float(input("Porcentaje a recortar en cada extremo (ej: 5 para 5%): ")) / 100
+                        if 0 < porcentaje < 0.5:
+                            break
+                        print("Ingrese un valor entre 1 y 49.")
+                    except ValueError:
+                        print("Error. Ingrese un número válido.")
+
+            x, y, eliminados = num_f.filtrar_atipicos(x, y, metodo=metodo, porcentaje=porcentaje)
+            print(f"\n  Datos originales : {len(x) + eliminados}")
+            print(f"  Datos eliminados : {eliminados}")
+            print(f"  Datos restantes  : {len(x)}")
+
+        resultados = num_f.regresion_lineal(x, y)
+
+        print("\n========== RESULTADOS ==========")
+        print(f"Ecuación:           Ŷ = {resultados['b0']:.4f} + {resultados['b1']:.4f} * X")
+        print(f"Intercepto (β₀):    {resultados['b0']:.4f}")
+        print(f"Pendiente (β₁):     {resultados['b1']:.4f}")
+        print(f"Correlación (r):    {resultados['r']:.4f}")
+        print(f"Determinación (R²): {resultados['r2']:.4f} ({resultados['r2']*100:.2f}%)")
+        print(f"Error estándar (s): {resultados['s']:.4f}")
+        print(f"SSR:                {resultados['SSR']:.4f}")
+        print(f"SSE:                {resultados['SSE']:.4f}")
+        print(f"SST:                {resultados['SST']:.4f}")
+        print("================================")
+
+        graficar = user_f.binary_question("\n¿Desea ver la gráfica de dispersión y recta de regresión?", "s/n")
+        if graficar:
+            num_f.graficar_regresion(x, y, resultados)
+
+        predecir = user_f.binary_question("¿Desea predecir un valor de Y dado un X?", "s/n")
+        while predecir:
+            try:
+                x_pred = float(input("Ingrese el valor de X: "))
+                y_pred = resultados['b0'] + resultados['b1'] * x_pred
+                print(f"  Ŷ = {resultados['b0']:.4f} + {resultados['b1']:.4f} * {x_pred} = {y_pred:.4f}")
+            except ValueError:
+                print("Error. Ingrese un número válido.")
+            predecir = user_f.binary_question("¿Desea predecir otro valor?", "s/n")
 
 if __name__ == "__main__":
     x = Tabla()
