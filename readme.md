@@ -7,11 +7,9 @@ Permite crear tablas de datos, generar tablas de frecuencias, calcular estadíst
 
 ## Funcionalidades actuales
 
-### Crear tabla
-- Permite crear una tabla personalizada.
-- Define número de filas y columnas.
-- Permite elegir si los datos serán enteros o decimales.
-- Guarda la tabla automáticamente en formato `.csv` dentro de la carpeta `tablas/`.
+### Gestión de Tablas
+- **Crear tabla**: Crea una tabla personalizada definiendo filas, columnas y tipo de dato (entero/decimal). Se guarda automáticamente en formato `.csv`.
+- **Agregar tabla desde archivo**: Permite seleccionar un archivo `.csv` mediante el explorador de archivos nativo del sistema (Windows, Linux y macOS). Soporta tablas con o sin encabezados.
 
 ---
 
@@ -74,6 +72,23 @@ Calcula automáticamente:
   - Distribución de los datos
   - Concentración de frecuencias
   - Forma de la distribución (simetría o sesgo)
+
+---
+
+### Regresiones
+Permite realizar regresiones con las siguientes opciones:
+
+- **Regresión Lineal** (`Y = β₀ + β₁X`)
+- **Regresión Exponencial** (`Y = a · e^(bX)`)
+- **Regresión Logarítmica** (`Y = a + b · ln(X)`)
+- **Regresión Polinómica** (de grado configurable)
+
+**Características comunes en todas las regresiones:**
+- Filtrado opcional de datos atípicos (métodos: IQR, Recorte por porcentaje, Z-score)
+- Cálculo completo de estadísticos: correlación (r), coeficiente de determinación (R²), error estándar, SSR, SSE y SST
+- Gráfica de dispersión con la curva de regresión
+- Gráfica de residuos
+- Predicción interactiva de valores de Y dado un X
 
 ---
 

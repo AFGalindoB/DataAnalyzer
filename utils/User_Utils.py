@@ -193,11 +193,9 @@ def get_positive_integer(prompt:str):
         except ValueError:
             print("Error. Por favor ingrese un numero entero positivo.")
 
-def get_table(path_tablas):
-    """Solicita al usuario seleccionar una tabla de la carpeta
-    y devuelve un DataFrame con los datos de esa tabla.
-    :param path_tablas: Ruta de la carpeta donde se encuentran las tablas
-    :return: DataFrame con los datos de la tabla seleccionada por el usuario"""
+def seleccionar_tabla(path_tablas):
+    """Muestra las tablas disponibles y devuelve la ruta completa del archivo seleccionado.
+    No lee el CSV todavía."""
     
     archivos = [f for f in os.listdir(path_tablas) if f.endswith(".csv")]
     
@@ -213,20 +211,44 @@ def get_table(path_tablas):
         try:
             opcion = int(input("\nIngrese el número de la tabla: "))
             if 1 <= opcion <= len(archivos):
-                break
+                return os.path.join(path_tablas, archivos[opcion - 1])
             print(f"Error. Ingrese un número entre 1 y {len(archivos)}.")
         except ValueError:
             print("Error. Ingrese un número válido.")
+
+
+def obtener_datos_tabla(path_tabla):
+    """Carga una tabla seleccionada por el usuario y la devuelve como DataFrame.
     
-    path_tabla = os.path.join(path_tablas, archivos[opcion - 1])
+    Parámetros:
+        path_tabla: Ruta completa del archivo CSV
     
-    header = 0 if binary_question("¿La tabla tiene encabezados?", "s/n") else None
+    Retorna:
+        DataFrame con los datos de la tabla, o None si no se pudo cargar.
+    """
+    if path_tabla is None or not os.path.exists(path_tabla):
+        print("Error: No se encontró la ruta de la tabla.")
+        return None
+
+    tiene_encabezados = binary_question("¿La tabla tiene encabezados?", "s/n")
+    header = 0 if tiene_encabezados else None
+
     df = pd.read_csv(path_tabla, header=header)
-    
-    if header is not None:
+
+    print(f"\nTabla cargada: {os.path.basename(path_tabla)}")
+    print(f"Dimensiones: {df.shape[0]} filas × {df.shape[1]} columnas")
+
+    if tiene_encabezados and df.shape[1] > 1:
+        # Caso con encabezados y múltiples columnas → elegir columna
         headers = df.columns.tolist()
-        opcion_col = select_option(headers, "Seleccione la columna que desea usar como muestra:")
-        df = df[opcion_col]
-    
-    print(df)
-    return df
+        columna_elegida = select_option(headers, "Seleccione la columna que desea usar:")
+        datos = df[columna_elegida].to_numpy(dtype=float)
+        print(f"Usando columna: {columna_elegida}")
+    else:
+        # Caso sin encabezados o tabla de una sola columna → aplanar todo
+        datos = df.to_numpy().flatten().astype(float)
+        print("Usando todos los datos (matriz aplanada)")
+
+    print(f"Datos listos: {len(datos)} valores")
+    print("-" * 60)
+    return datos

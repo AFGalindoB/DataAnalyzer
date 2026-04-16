@@ -12,6 +12,7 @@ class Tabla:
         
         self.root_path = os.path.dirname(os.path.abspath(__file__))
         self.path_tablas = os.path.join(self.root_path, "tablas")
+        self.tabla_cargada = None
         
         print("Bienvenido a DataAnalyzer")
 
@@ -20,12 +21,13 @@ class Tabla:
         opciones = {
             "Crear tabla":self.crear_tabla, 
             "Agregar tabla desde archivo":self.agregar_tabla,
+            "Cargar_tabla": self.cargar_tabla,
+            "Calcular muestra":self.calcular_muestra,
             "Realizar tabla de frecuencias":self.realizar_tabla_de_frecuencias,
             "Realizar grafica de tallos y hojas":self.realizar_grafica_tallos_hojas,
             "Realizar grafica de cajas y bigotes":self.realizar_grafica_cajas_bigotes,
             "Realizar histograma":self.realizar_histograma,
-            "Calcular muestra":self.calcular_muestra,
-            "Realizar regresion lineal": self.realizar_regresion_lineal,
+            "Realizar regresión": self.realizar_regresion,
             "Salir":self.salir
         }
         lista_opciones = list(opciones.keys())
@@ -34,6 +36,16 @@ class Tabla:
             opcion_elegida = user_f.select_option(lista_opciones, "\n¿Que desea hacer?:")
             opciones[opcion_elegida]()
     
+    def cargar_tabla(self):
+        self.tabla_cargada = user_f.seleccionar_tabla(self.path_tablas)
+
+    def _obtener_datos_tabla(self, preguntar_encabezados=True):
+        if self.tabla_cargada is None:
+            self.cargar_tabla()
+
+        if preguntar_encabezados:
+            return user_f.obtener_datos_tabla(self.tabla_cargada)
+
     def salir(self):
         print("Saliendo del programa...")
         sys.exit()
@@ -114,7 +126,7 @@ class Tabla:
             print(df.head(10).to_string(index=False, header=False))
 
     def calcular_muestra(self):
-        tabla = user_f.get_table(self.path_tablas)
+        tabla = self._obtener_datos_tabla()
         tabla = tabla.values.flatten()
         print(tabla, np.sort(tabla), sep="\n\n")
 
@@ -143,7 +155,7 @@ class Tabla:
         print(f"Rango Intercuartilico = {rango_intercuartilico}")
     
     def realizar_tabla_de_frecuencias(self):
-        tabla = user_f.get_table(self.path_tablas)
+        tabla = self._obtener_datos_tabla()
 
         k = user_f.get_positive_integer("Ingrese la cantidad de clases: ")
 
@@ -191,7 +203,7 @@ class Tabla:
         print("Cantidad de clases:", len(tabla_frecuencias))
 
     def realizar_grafica_tallos_hojas(self):
-        tabla = user_f.get_table(self.path_tablas)
+        tabla = self._obtener_datos_tabla()
         datos = tabla.values.flatten()
         datos = np.sort(datos)
         print(f"Datos: {datos}")
@@ -216,7 +228,7 @@ class Tabla:
             print(f"{tallo} | {hojas}")
 
     def realizar_grafica_cajas_bigotes(self):
-        tabla = user_f.get_table(self.path_tablas)
+        tabla = self._obtener_datos_tabla()
         datos = tabla.values.flatten()
         datos = np.sort(datos)
 
@@ -239,7 +251,7 @@ class Tabla:
         plt.show()
     
     def realizar_histograma(self):
-        tabla = user_f.get_table(self.path_tablas)
+        tabla = self._obtener_datos_tabla()
         datos = tabla.values.flatten()
         datos = np.sort(datos)
 
@@ -269,28 +281,37 @@ class Tabla:
 
         plt.show()
 
-    def realizar_regresion_lineal(self):
-        print("\n--- Regresión Lineal Simple ---")
+    def realizar_regresion(self):
+        print("\n--- Regresión ---")
+        tipos_regresion = {
+            "Lineal (Y = β₀ + β₁X)": "lineal",
+            "Exponencial (Y = a * e^(bX))": "exponencial",
+            "Logarítmica (Y = a + b * ln(X))": "logaritmica",
+            "Polinómica": "polinomica"
+        }
+        lista_tipos = list(tipos_regresion.keys())
+        eleccion = user_f.select_option(lista_tipos, "\nSeleccione el tipo de regresión:")
+        model_type = tipos_regresion[eleccion]
+        self._obtener_datos_tabla(preguntar_encabezados=False)
+        tabla = self.tabla_cargada
+
+        print(f"\n--- Regresión {eleccion.split(' (')[0]} ---")
         print("Seleccione la tabla con la variable X (independiente):")
-        tabla_x = user_f.get_table(self.path_tablas)
-        x = tabla_x.values.flatten().astype(float)
+        x = self._obtener_datos_tabla(tabla)
 
         print("\nSeleccione la tabla con la variable Y (dependiente):")
-        tabla_y = user_f.get_table(self.path_tablas)
-        y = tabla_y.values.flatten().astype(float)
+        y = self._obtener_datos_tabla(tabla)
 
         if len(x) != len(y):
             print(f"Error: X tiene {len(x)} datos e Y tiene {len(y)}. Deben ser iguales.")
             return
 
-        # -- NUEVO: filtrado opcional de atípicos --
         filtrar = user_f.binary_question("\n¿Desea filtrar datos atípicos antes de la regresión?", "s/n")
         if filtrar:
             metodos = ["IQR (bigotes)", "Recorte por porcentaje", "Z-score (|z| > 3)"]
-            keys    = ["iqr", "recorte", "zscore"]
-            eleccion = user_f.select_option(metodos, "Seleccione el método de filtrado:")
-            metodo = keys[metodos.index(eleccion)]
-
+            keys = ["iqr", "recorte", "zscore"]
+            eleccion_f = user_f.select_option(metodos, "Seleccione el método de filtrado:")
+            metodo = keys[metodos.index(eleccion_f)]
             porcentaje = 0.05
             if metodo == "recorte":
                 while True:
@@ -301,18 +322,47 @@ class Tabla:
                         print("Ingrese un valor entre 1 y 49.")
                     except ValueError:
                         print("Error. Ingrese un número válido.")
-
             x, y, eliminados = num_f.filtrar_atipicos(x, y, metodo=metodo, porcentaje=porcentaje)
             print(f"\n  Datos originales : {len(x) + eliminados}")
             print(f"  Datos eliminados : {eliminados}")
             print(f"  Datos restantes  : {len(x)}")
 
-        resultados = num_f.regresion_lineal(x, y)
+        try:
+            if model_type == "lineal":
+                resultados = num_f.regresion_lineal(x, y)
+            elif model_type == "exponencial":
+                resultados = num_f.regresion_exponencial(x, y)
+            elif model_type == "logaritmica":
+                resultados = num_f.regresion_logaritmica(x, y)
+            elif model_type == "polinomica":
+                grado = user_f.get_positive_integer("Ingrese el grado del polinomio (1-5 recomendado): ")
+                if grado < 1:
+                    grado = 1
+                if grado > 10:
+                    grado = 5
+                    print("Grado limitado a 5.")
+                resultados = num_f.regresion_polinomica(x, y, grado)
+        except ValueError as e:
+            print(f"\nError: {e}")
+            print("No se pudo calcular la regresión (verifica valores positivos para exp/log).")
+            return
+        except Exception as e:
+            print(f"\nError inesperado: {e}")
+            return
 
+        # Resultados
         print("\n========== RESULTADOS ==========")
-        print(f"Ecuación:           Ŷ = {resultados['b0']:.4f} + {resultados['b1']:.4f} * X")
-        print(f"Intercepto (β₀):    {resultados['b0']:.4f}")
-        print(f"Pendiente (β₁):     {resultados['b1']:.4f}")
+        print(f"Modelo:             {resultados['model'].capitalize()}")
+        print(f"Ecuación:           {resultados['equation']}")
+        if resultados['model'] == "lineal":
+            print(f"Intercepto (β₀):    {resultados['b0']:.4f}")
+            print(f"Pendiente (β₁):     {resultados['b1']:.4f}")
+        elif resultados['model'] in ["exponencial", "logaritmica"]:
+            print(f"a:                  {resultados['a']:.4f}")
+            print(f"b:                  {resultados['b']:.4f}")
+        elif resultados['model'] == "polinomica":
+            print(f"Grado:              {resultados['grado']}")
+            print(f"Coeficientes:       {[round(c, 4) for c in resultados['coeffs']]}")
         print(f"Correlación (r):    {resultados['r']:.4f}")
         print(f"Determinación (R²): {resultados['r2']:.4f} ({resultados['r2']*100:.2f}%)")
         print(f"Error estándar (s): {resultados['s']:.4f}")
@@ -321,18 +371,22 @@ class Tabla:
         print(f"SST:                {resultados['SST']:.4f}")
         print("================================")
 
-        graficar = user_f.binary_question("\n¿Desea ver la gráfica de dispersión y recta de regresión?", "s/n")
-        if graficar:
+        if user_f.binary_question("\n¿Desea ver la gráfica de dispersión y curva de regresión?", "s/n"):
             num_f.graficar_regresion(x, y, resultados)
 
         predecir = user_f.binary_question("¿Desea predecir un valor de Y dado un X?", "s/n")
         while predecir:
             try:
                 x_pred = float(input("Ingrese el valor de X: "))
-                y_pred = resultados['b0'] + resultados['b1'] * x_pred
-                print(f"  Ŷ = {resultados['b0']:.4f} + {resultados['b1']:.4f} * {x_pred} = {y_pred:.4f}")
+                if resultados["model"] == "logaritmica" and x_pred <= 0:
+                    print("Error: Para el modelo logarítmico, X debe ser > 0.")
+                else:
+                    y_pred = resultados["predict"](x_pred)
+                    print(f"  Ŷ = {y_pred:.4f}")
             except ValueError:
                 print("Error. Ingrese un número válido.")
+            except Exception as e:
+                print(f"Error en la predicción: {e}")
             predecir = user_f.binary_question("¿Desea predecir otro valor?", "s/n")
 
 if __name__ == "__main__":
