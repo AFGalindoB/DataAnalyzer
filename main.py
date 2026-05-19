@@ -127,7 +127,6 @@ class Tabla:
 
     def calcular_muestra(self):
         tabla = self._obtener_datos_tabla()
-        tabla = tabla.values.flatten()
         print(tabla, np.sort(tabla), sep="\n\n")
 
         n = len(tabla)
@@ -159,9 +158,7 @@ class Tabla:
 
         k = user_f.get_positive_integer("Ingrese la cantidad de clases: ")
 
-        # Tomar todos los datos como un array y ordenarlos
-        datos = tabla.values.flatten()
-        datos_ordenados = np.sort(datos)
+        datos_ordenados = np.sort(tabla)
 
         # Min, max reales y valores únicos ordenados
         min_val = datos_ordenados.min()
@@ -204,8 +201,7 @@ class Tabla:
 
     def realizar_grafica_tallos_hojas(self):
         tabla = self._obtener_datos_tabla()
-        datos = tabla.values.flatten()
-        datos = np.sort(datos)
+        datos = np.sort(tabla)
         print(f"Datos: {datos}")
 
         tipo = user_f.binary_question("¿Los datos son enteros?", "s/n")
@@ -229,8 +225,7 @@ class Tabla:
 
     def realizar_grafica_cajas_bigotes(self):
         tabla = self._obtener_datos_tabla()
-        datos = tabla.values.flatten()
-        datos = np.sort(datos)
+        datos = np.sort(tabla)
 
         q1, mediana, q3 = np.percentile(datos, [25, 50, 75], method="weibull")
 
@@ -252,8 +247,7 @@ class Tabla:
     
     def realizar_histograma(self):
         tabla = self._obtener_datos_tabla()
-        datos = tabla.values.flatten()
-        datos = np.sort(datos)
+        datos = np.sort(tabla)
 
         print(f"Datos:\n{datos}\n")
 
